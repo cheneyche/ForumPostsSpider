@@ -1,0 +1,103 @@
+#!/bin/bash
+if [ -f $PPWD/all_tiezi.list ];then
+	rm -rf $PPWD/all_tiezi.list
+fi
+if [ -f $PPWD/count.list ];then
+	rm -rf $PPWD/count.list
+fi
+if [ -f $PPWD/all_tiezi1_jinghua.list ];then
+	rm -rf $PPWD/all_tiezi1_jinghua.list
+fi
+if [ -f $PPWD/all_tiezi1_jinghua_cc.list ];then
+	rm -rf $PPWD/all_tiezi1_jinghua_cc.list
+fi
+if [ -f $PPWD/all_tiezi1_putong_cc.list ];then
+	rm -rf $PPWD/all_tiezi1_putong_cc.list
+fi
+PPWD=`pwd`
+curl http://bbs.pcauto.com.cn/pick-19635_postat.html >$PPWD/cc1.list
+piconv -f "gbk" -t "utf-8" < $PPWD/cc1.list >$PPWD/cc1-piconv.list
+sed -i '/^$/d' $PPWD/cc1-piconv.list
+sed -i 's///g' $PPWD/cc1-piconv.list
+sed -i '/^$/d' $PPWD/cc1-piconv.list
+
+num=`cat $PPWD/cc1-piconv.list |grep "下一页" |awk -F'\\\\.\\\\.\\\\.' '{print $2}'|awk -F'<' '{print $1}'`
+
+rm -rf $PPWD/cc1.list $PPWD/cc1-piconv.list
+#echo $num
+#exit 0
+#num=$1
+for ((i=1;i<=$num;i++))
+do
+	curl http://bbs.pcauto.com.cn/pick_0-19635-${i}_postat.html >$PPWD/$i.list
+	piconv -f "gbk" -t "utf-8" < $PPWD/$i.list >$PPWD/$i-piconv.list
+	sed -i '/^$/d' $PPWD/$i-piconv.list
+	sed -i 's///g' $PPWD/$i-piconv.list
+	sed -i '/^$/d' $PPWD/$i-piconv.list
+	cat $PPWD/$i-piconv.list |awk '{{printf"%s",$0}}' >$PPWD/$i-cc.list
+	#sed  -i 's/<div class="rightCon"/\n<div class="rightCon"/g' $PPWD/$i-cc.list
+	sed  -i 's/<div class=\"ctn\"/\n<div class=\"ctn\"/g' $PPWD/$i-cc.list
+	cat $PPWD/$i-cc.list |grep '<div class="ctn">' >$PPWD/$i-cc2.list
+	#exit 0
+	
+	while read line
+	do 
+		name=`echo $line |awk -F'class="author" target="_blank">' '{print $2}' |awk -F'</a>' '{print $1}'`
+#		curl http://club.pcauto.com.cn/shcs75/member/kw=$name >$PPWD/name.list
+#		piconv -f "gbk" -t "utf-8" < $PPWD/name.list > $PPWD/name-piconv.list
+#		cat $PPWD/name-piconv.list |grep "您所查询的会员不存在！" &>/dev/null
+#		if [ $? = 0 ];then
+#			name=''
+#		fi
+		Date=`echo $line |awk -F'<span class="datatime">' '{print $2}' |awk -F'</span>' '{print $1}'`
+		num_huitie=`echo $line |awk -F'class="replay" target="_blank">' '{print $2}' |awk -F'</a>' '{print $1}'`
+		echo $line |grep 'class="rmd">[首页推荐]' &>/dev/null
+		if [ $? != 0 ];then
+			shouye_or_not=""
+		else
+			shouye_or_not="首页帖"
+		fi
+		name_tiezi=`echo $line |awk -F'class="link2 " target="_blank">' '{print $2}' |awk -F'</a>' '{print $1}'`
+		echo $name_tiezi |grep -i "上海cs75"  &>/dev/null
+		if [  $? != 0 ];then
+			name_tiezi=""
+		fi
+		url_tiezi=`echo $line |awk -F'" class="link2 " target="_blank"' '{print $1}' |awk -F'<a href="' '{print $2}'`
+#		#echo -ne "$name\t$jinghua_string\t$Date\t$num_huitie\t$name_tiezi\t$url_tiezi\n"
+		if [[ "A$name" != "A" && "A$Date" != "A" && "A$name_tiezi" != "A" ]];then
+			echo "$Date" |grep '^2018-02' #&>/dev/null
+			if [ $? = 0 ];then
+				if [ "A$shouye_or_not" != "A" ];then
+					echo -ne "$Date\t上海CS75官方车友会\t首页帖\t$url_tiezi\t$name_tiezi+$url_tiezi\t太平洋汽车网\tcccccc\t$num_huitie\ts王枫s\t13818372341\t$name\n" >>$PPWD/all_jinghua.list
+				else
+					echo -ne "$Date\t上海CS75官方车友会\t精华贴\t$url_tiezi\t$name_tiezi+$url_tiezi\t太平洋汽车网\tcccccc\t$num_huitie\ts王枫s\t13818372341\t$name\n" >>$PPWD/all_jinghua.list
+				fi
+			fi
+		fi
+		rm -rf $PPWD/name.list
+		rm -rf $PPWD/name-piconv.list
+	done < $PPWD/$i-cc2.list
+	rm -rf $PPWD/$i.list
+	rm -rf $PPWD/$i-piconv.list
+	rm -rf $PPWD/$i-cc.list
+	rm -rf $PPWD/$i-cc2.list
+#	exit 0
+done
+#cat $PPWD/all_tiezi1.list |sort|uniq >$PPWD/all_tiezi.list
+#cat $PPWD/all_tiezi1_jinghua.list |sort|uniq >$PPWD/all_tiezi_jinghua.list
+#rm -rf $PPWD/all_tiezi1.list
+#rm -rf $PPWD/all_tiezi1_jinghua.list
+#cat $PPWD/all_tiezi.list|awk '{print $1}' |sort |uniq >$PPWD/all_manber.list
+#for k  in `cat $PPWD/all_manber.list`;do
+#	all_num=`cat $PPWD/all_tiezi.list |grep $k |wc -l`
+#	jinghua_num=`cat $PPWD/all_tiezi_jinghua.list|grep $k|wc -l`
+##	putongtiezi_num=$(($all_num - $jinghua_num))
+##	all_conunt=$(($jinghua_num*500 + $putongtiezi_num*200))
+#	all_conunt=$(($jinghua_num*500))
+#	if [ $all_conunt != 0 ];then
+#		echo -ne "$k\t$jinghua_num\t$all_conunt\n" >>$PPWD/count.list
+#	fi
+##	echo -ne "$k\t$jinghua_num\t$putongtiezi_num\t$all_conunt\n" >>$PPWD/count.list
+#done
+#
+#rm -rf $PPWD/all_manber.list

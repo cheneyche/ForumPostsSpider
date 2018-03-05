@@ -1,0 +1,70 @@
+#!/bin/bash
+if [ -f $PPWD/all_tiezi.list ];then
+	rm -rf $PPWD/all_tiezi.list
+fi
+if [ -f $PPWD/count.list ];then
+	rm -rf $PPWD/count.list
+fi
+PPWD=`pwd`
+curl http://baa.bitauto.com/changancs75/index-0-all-1-1.html >$PPWD/cc1.list
+#curl http://baa.bitauto.com/changancs75/forum-665933-all-all-1-0.html >$PPWD/cc1.list
+num=`cat $PPWD/cc1.list |grep "</a><span>到第" |awk -F'</a><span>到第'  '{print $1}' |awk -F'>' '{print $NF}'`
+#num=`cat $PPWD/cc1.list |grep "</a><em>...</em><a" |awk -F'</a><em>...</em><a'  '{print $2}' |awk -F'>' '{print $2}' |awk -F'<' '{print $1}'`
+echo "num======$num"
+#exit 0
+#num=$1
+#rm -rf $PPWD/cc1.list
+for ((i=1;i<=$num;i++))
+do
+	echo $i
+	curl http://baa.bitauto.com/changancs75/index-0-all-$i-1.html >$PPWD/$i.list
+	#curl http://baa.bitauto.com/changancs75/forum-665933-all-all-$i-0.html >$PPWD/$i.list
+	#piconv -f "gbk" -t "utf-8" < $PPWD/$i.list >$PPWD/$i-piconv.list
+	#sed -i 's/<dl/\n<dl/g' $PPWD/$i-piconv.list
+	cat $PPWD/$i.list |grep -A 28 "<div class=\"postslist_xh\">" >$PPWD/$i-cc.list
+	cat $PPWD/$i-cc.list |sed 's///g'|awk '{{printf"%s",$0}}' |sed 's/--<div/\n<div/g'|grep "class=\"jing\"" >$i-cc2.list
+	while read line
+	do
+		#name=`echo "$line" |awk -F '/">                ' '{print $2}' |awk -F '</a>' '{print $1}'`
+		name=`echo "$line" |awk -F'<li class="zhhf">' '{print $2}'|awk -F'</a>' '{print $1}' |awk -F'">                ' '{print $2}'`
+		Date=`echo "$line" |awk -F'<li class="zhhf">' '{print $2}' |awk -F'<span class="date">                    ' '{print $2}' |awk -F'</span>' '{print $1}'`
+		#Date=`echo "$line" |awk -F'<li class=\"zhhf\">            ' '{print $2}'|awk -F'        </li>' '{print $1}'`
+	#	num_huitie=`echo "$line" |awk -F'<em>/</em>' '{print $1}'|awk -F'</small>            ' '{print $2}'`
+		num_huitie=`echo "$line" |awk -F'<li class="hf"><span><small></small>            ' '{print $2}'  |awk -F'<em>/</em>' '{print $1}'`
+	#	yuedushu=`echo "$line"|awk -F'<em>/</em>' '{print $2}'|awk -F'</span>        ' '{print $1}'`
+		yuedushu=`echo "$line"|awk -F'<li class="hf"><span><small></small>            ' '{print $2}'  |awk -F'<em>/</em>' '{print $2}' |awk -F'</span>' '{print $1}'`
+		name_tiezi=`echo "$line"|awk -F'title="' '{print $2}' |awk -F'">        ' '{print $1}'`
+		url_tiezi=`echo "$line" |awk -F'<a target="_blank" href="' '{print $2}' |awk -F'"' '{print $1}'`
+		#echo "name=$name"
+		#echo "Date=$Date"
+		#echo "num_huitie=$num_huitie"
+		#echo "yuedushu=$yuedushu"
+		#echo "name_tiezi=$name_tiezi"
+		#echo -ne "url_tiezi=$url_tiezi\n\n\n\n=====================================\n"
+		#echo -ne "$Date\t上海长安CS75车友会\t精华贴\t$name_tiezi+$url_tiezi\t汽车之家\t$yuedushu\t$num_huitie\t王枫\t13818372341\t$name\n"
+		if [[ "A$name" != "A" ]];then
+            #echo $name_tiezi
+			echo "$Date" |grep '2018-02' &>/dev/null
+			if [[ $? = 0 ]];then
+                echo $name_tiezi |grep "上海" &>>/dev/null
+                if [[ $? = 0 ]];then
+				    echo -ne "$Date\t上海长安CS75车友会\t精华贴\t$url_tiezi\t$name_tiezi+$url_tiezi\t易车网\t$yuedushu\t$num_huitie\t王枫\t13818372341\t$name\n" >>$PPWD/all_jinghua.list
+				    echo -ne "$Date\t上海长安CS75车友会\t精华贴\t$url_tiezi\t$name_tiezi+$url_tiezi\t易车网\t$yuedushu\t$num_huitie\t王枫\t13818372341\t$name\n"
+                fi
+			fi
+		fi
+	done < $PPWD/$i-cc2.list
+	#exit 0
+	rm -rf $PPWD/$i.list
+	#rm -rf $PPWD/$i-piconv.list
+	rm -rf $PPWD/$i-cc.list
+	rm -rf $PPWD/$i-cc2.list
+done
+#cat $PPWD/all_tiezi.list|awk '{print $10}' |sort |uniq >$PPWD/all_manber.list
+#for k  in `cat $PPWD/all_manber.list`;do
+#	all_num=`cat $PPWD/all_tiezi.list |grep $k |wc -l`
+#	jinghua_num=`cat $PPWD/all_tiezi_jinghua.list|grep $k|wc -l`
+#	putongtiezi_num=$(($all_num - $jinghua_num))
+#	all_conunt=$(($jinghua_num*800 + $putongtiezi_num*200))
+#	echo -ne "$k\t$jinghua_num\t$putongtiezi_num\t$all_conunt\n" >>$PPWD/count.list
+#done
